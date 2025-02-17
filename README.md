@@ -11,7 +11,7 @@ Follow these steps to set up and run the project locally:
 
 1. Clone the repository to your local machine:
 
-- git clone [(https://github.com/andile593/Othandweni-CCC-Website.git)]
+- git clone [(https://github.com/andile593/TechCare.git)]
   
 2. Install dependencies:
 
