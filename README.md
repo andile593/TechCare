@@ -1,7 +1,6 @@
 # TechCare
 ![localhost_4000_](https://github.com/user-attachments/assets/219bf7df-a69f-4b32-af0c-ba2f58c68fca)
 
-Design Link: https://www.figma.com/design/dZ9uRrOkrzHCpWMDdbbrTM/EduGate?m=auto&t=IX2kofvY8ML0taXj-1
 
 ## About
 Medical dashboard displaying patients data. Patients data has retrieved from an API.
