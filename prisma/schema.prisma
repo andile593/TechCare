@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Tenancy & Auth ----------
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  patients  Patient[]
+  auditLogs AuditLog[]
+
+  @@map("organizations")
+}
+
+enum StaffRole {
+  ADMIN
+  DOCTOR
+  NURSE
+}
+
+model User {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  email        String    @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         StaffRole
+  specialty    String?
+  phone        String?
+  avatarUrl    String?
+
+  lastLoginAt DateTime?
+  deletedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patientsAsPrimary  Patient[]      @relation("PrimaryPhysician")
+  vitalsRecorded     VitalReading[]
+  diagnosticsRecorded Diagnostic[]
+  labResultsUploaded LabResult[]
+  auditLogs          AuditLog[]
+  refreshTokens RefreshToken[]
+
+  @@index([organizationId])
+  @@map("users")
+}
+
+// ---------- Patients ----------
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNDISCLOSED
+}
+
+model Patient {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  gender          Gender
+  phone           String?
+  profileImageUrl String?
+
+  insuranceProviderName String?
+  insurancePolicyNumber String?
+
+  primaryPhysicianId String?
+  primaryPhysician   User? @relation("PrimaryPhysician", fields: [primaryPhysicianId], references: [id])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  emergencyContacts EmergencyContact[]
+  vitalReadings     VitalReading[]
+  diagnostics       Diagnostic[]
+  labResults        LabResult[]
+
+  @@index([organizationId])
+  @@map("patients")
+}
+
+model EmergencyContact {
+  id        String  @id @default(uuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  name         String
+  relationship String
+  phone        String
+
+  @@index([patientId])
+  @@map("emergency_contacts")
+}
+
+// ---------- Clinical Data ----------
+
+enum VitalType {
+  RESPIRATORY_RATE
+  TEMPERATURE
+  HEART_RATE
+  BLOOD_PRESSURE_SYSTOLIC
+  BLOOD_PRESSURE_DIASTOLIC
+}
+
+model VitalReading {
+  id        String  @id @default(uuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  type  VitalType
+  value Float
+  unit  String
+
+  recordedAt   DateTime
+  recordedById String
+  recordedBy   User     @relation(fields: [recordedById], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([patientId, type, recordedAt])
+  @@map("vital_readings")
+}
+
+enum DiagnosticStatus {
+  UNDER_OBSERVATION
+  CURED
+  INACTIVE
+  UNTREATED
+}
+
+model Diagnostic {
+  id        String  @id @default(uuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  name        String
+  description String
+  status      DiagnosticStatus
+
+  diagnosedAt  DateTime @default(now())
+  recordedById String
+  recordedBy   User     @relation(fields: [recordedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([patientId])
+  @@map("diagnostics")
+}
+
+enum LabResultCategory {
+  BLOOD_TEST
+  CT_SCAN
+  RADIOLOGY_REPORT
+  XRAY
+}
+
+model LabResult {
+  id        String  @id @default(uuid())
+  patientId String
+  patient   Patient @relation(fields: [patientId], references: [id])
+
+  category   LabResultCategory
+  fileUrl    String
+  uploadedAt DateTime @default(now())
+
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  @@index([patientId])
+  @@map("lab_results")
+}
+
+// ---------- Compliance ----------
+
+enum AuditAction {
+  VIEW
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model AuditLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  action     AuditAction
+  entityType String
+  entityId   String
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([organizationId, entityType, entityId])
+  @@map("audit_logs")
+}
+
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+
+  tokenHash String    @unique   // SHA-256 hash of the actual token — never store it raw
+  expiresAt DateTime
+  revokedAt DateTime?
+  replacedByTokenHash String?   // set when rotated — lets us detect reuse of a dead token
+
+  userAgent String?
+  ipAddress String?
+
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

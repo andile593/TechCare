@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+jobs:
+  ci:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: techcare
+          POSTGRES_PASSWORD: techcare
+          POSTGRES_DB: techcare_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U techcare"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: "postgresql://techcare:techcare@localhost:5432/techcare_test?schema=public"
+      JWT_SECRET: "ci-test-secret-at-least-32-characters-long"
+      JWT_REFRESH_SECRET: "ci-test-refresh-secret-at-least-32-chars"
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Prisma generate
+        run: npm run prisma:generate
+
+      - name: Run migrations against test DB
+        run: npm run prisma:migrate:deploy
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
