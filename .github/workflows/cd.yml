@@ -38,7 +38,11 @@ jobs:
 
       - name: Set image tag
         id: meta
-        run: echo "image=ghcr.io/${{ github.repository }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+        run: |
+          REPO_LC=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "repo_lc=$REPO_LC" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/$REPO_LC:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -46,9 +50,10 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ steps.meta.outputs.repo_lc }}:${{ github.sha }}
+            ghcr.io/${{ steps.meta.outputs.repo_lc }}:latest
 
+            
   deploy:
     name: Deploy
     needs: build-and-push
