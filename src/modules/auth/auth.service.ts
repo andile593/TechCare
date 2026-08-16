@@ -1,7 +1,7 @@
 import { Request } from 'express';
 import { prisma } from '@/lib/prisma';
 import { AppError } from '@/utils/AppError';
-import { hashPassword, verifyPassword } from '@/utils/password';
+import { verifyPassword } from '@/utils/password';
 import { signAccessToken, generateRefreshToken, hashToken, generateCsrfToken, AccessTokenPayload } from '@/utils/tokens';
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
