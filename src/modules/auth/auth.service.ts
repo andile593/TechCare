@@ -1,8 +1,14 @@
 import { Request } from 'express';
 import { prisma } from '@/lib/prisma';
 import { AppError } from '@/utils/AppError';
-import { hashPassword, verifyPassword } from '@/utils/password';
-import { signAccessToken, generateRefreshToken, hashToken, generateCsrfToken, AccessTokenPayload } from '@/utils/tokens';
+import { verifyPassword } from '@/utils/password';
+import {
+  signAccessToken,
+  generateRefreshToken,
+  hashToken,
+  generateCsrfToken,
+  AccessTokenPayload,
+} from '@/utils/tokens';
 
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -55,7 +61,11 @@ async function issueSession(
   };
 }
 
-export async function login(email: string, password: string, meta: RequestMeta): Promise<SessionTokens> {
+export async function login(
+  email: string,
+  password: string,
+  meta: RequestMeta,
+): Promise<SessionTokens> {
   const user = await prisma.user.findUnique({ where: { email } });
 
   // Same error for "no such user" and "wrong password" on purpose —
@@ -71,12 +81,23 @@ export async function login(email: string, password: string, meta: RequestMeta):
 
   await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
-  return issueSession(user.id, user.organizationId, user.role, user.email, user.firstName, user.lastName, meta);
+  return issueSession(
+    user.id,
+    user.organizationId,
+    user.role,
+    user.email,
+    user.firstName,
+    user.lastName,
+    meta,
+  );
 }
 
 export async function refresh(presentedToken: string, meta: RequestMeta): Promise<SessionTokens> {
   const tokenHash = hashToken(presentedToken);
-  const stored = await prisma.refreshToken.findUnique({ where: { tokenHash }, include: { user: true } });
+  const stored = await prisma.refreshToken.findUnique({
+    where: { tokenHash },
+    include: { user: true },
+  });
 
   if (!stored) {
     throw AppError.unauthorized('Invalid refresh token');
@@ -102,8 +123,13 @@ export async function refresh(presentedToken: string, meta: RequestMeta): Promis
   }
 
   const next = await issueSession(
-    stored.user.id, stored.user.organizationId, stored.user.role,
-    stored.user.email, stored.user.firstName, stored.user.lastName, meta,
+    stored.user.id,
+    stored.user.organizationId,
+    stored.user.role,
+    stored.user.email,
+    stored.user.firstName,
+    stored.user.lastName,
+    meta,
   );
 
   await prisma.refreshToken.update({

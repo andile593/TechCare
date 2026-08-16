@@ -2,12 +2,19 @@ import { Request, Response } from 'express';
 import { loginSchema } from '@/modules/auth/auth.schema';
 import * as authService from '@/modules/auth/auth.service';
 import {
-  ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, CSRF_TOKEN_COOKIE,
-  accessTokenCookieOptions, refreshTokenCookieOptions, csrfTokenCookieOptions,
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  CSRF_TOKEN_COOKIE,
+  accessTokenCookieOptions,
+  refreshTokenCookieOptions,
+  csrfTokenCookieOptions,
 } from '@/config/cookies';
 import { AppError } from '@/utils/AppError';
 
-function setSessionCookies(res: Response, tokens: { accessToken: string; refreshToken: string; csrfToken: string }): void {
+function setSessionCookies(
+  res: Response,
+  tokens: { accessToken: string; refreshToken: string; csrfToken: string },
+): void {
   res.cookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, accessTokenCookieOptions);
   res.cookie(REFRESH_TOKEN_COOKIE, tokens.refreshToken, refreshTokenCookieOptions);
   res.cookie(CSRF_TOKEN_COOKIE, tokens.csrfToken, csrfTokenCookieOptions);

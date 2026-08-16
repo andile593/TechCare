@@ -3,16 +3,23 @@ import request from 'supertest';
 import { createApp } from '@/app';
 import { prisma } from '@/lib/prisma';
 
+interface HealthResponseBody {
+  status: 'ok' | 'degraded';
+  timestamp: string;
+  db: 'up' | 'down';
+}
+
 describe('GET /health', () => {
   it('returns 200 and status ok when the database is reachable', async () => {
     vi.spyOn(prisma, '$queryRaw').mockResolvedValueOnce([{ '?column?': 1 }]);
 
     const app = createApp();
     const res = await request(app).get('/health');
+    const body = res.body as HealthResponseBody;
 
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('ok');
-    expect(res.body.db).toBe('up');
+    expect(body.status).toBe('ok');
+    expect(body.db).toBe('up');
   });
 
   it('returns 503 when the database is unreachable', async () => {
@@ -20,9 +27,10 @@ describe('GET /health', () => {
 
     const app = createApp();
     const res = await request(app).get('/health');
+    const body = res.body as HealthResponseBody;
 
     expect(res.status).toBe(503);
-    expect(res.body.status).toBe('degraded');
-    expect(res.body.db).toBe('down');
+    expect(body.status).toBe('degraded');
+    expect(body.db).toBe('down');
   });
 });
