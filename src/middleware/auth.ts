@@ -3,6 +3,7 @@ import { StaffRole } from '@prisma/client';
 import { ACCESS_TOKEN_COOKIE } from '@/config/cookies';
 import { verifyAccessToken } from '@/utils/tokens';
 import { AppError } from '@/utils/AppError';
+import { requestContext } from '@/lib/requestContext';
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction): void {
   const token = req.cookies?.[ACCESS_TOKEN_COOKIE] as string | undefined;
@@ -13,7 +14,10 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction): v
   try {
     const payload = verifyAccessToken(token);
     req.user = { id: payload.sub, organizationId: payload.organizationId, role: payload.role };
-    next();
+
+    requestContext.run({ organizationId: payload.organizationId, userId: payload.sub }, () => {
+      next();
+    });
   } catch {
     next(AppError.unauthorized('Session expired or invalid'));
   }
