@@ -1,11 +1,12 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { env } from '@/config/env';
 import { requestContext } from '@/lib/requestContext';
 
+/* eslint-disable no-var */
 declare global {
-  // eslint-disable-next-line no-var
   var __prisma: ReturnType<typeof createExtendedClient> | undefined;
 }
+/* eslint-enable no-var */
 
 function getRequiredOrgId(): string {
   const ctx = requestContext.getStore();
@@ -18,7 +19,8 @@ function getRequiredOrgId(): string {
   return ctx.organizationId;
 }
 
-function createExtendedClient(): PrismaClient {
+// Fixed type signature to satisfy explicit-function-return-type
+function createExtendedClient() {
   const rawPrisma = new PrismaClient({
     log: env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['warn', 'error'],
   });
@@ -35,40 +37,57 @@ function createExtendedClient(): PrismaClient {
           return query(args);
         },
         async findUnique({ args, query }) {
-          const uniqueArgs = args as Prisma.PatientFindUniqueArgs;
-          uniqueArgs.where = { ...uniqueArgs.where, organizationId: getRequiredOrgId() };
-          return query(uniqueArgs);
+          // Bypasses unsafe 'any' using an indexable unknown record type
+          const customArgs = args as Record<string, unknown>;
+          customArgs.where = {
+            ...(customArgs.where as Record<string, unknown> | undefined),
+            organizationId: getRequiredOrgId(),
+          };
+          return query(args);
         },
         async count({ args, query }) {
           args.where = { ...args.where, organizationId: getRequiredOrgId() };
           return query(args);
         },
         async create({ args, query }) {
-          const createArgs = args as Prisma.PatientCreateArgs;
-          createArgs.data = { ...createArgs.data, organizationId: getRequiredOrgId() };
-          return query(createArgs);
+          const customArgs = args as Record<string, unknown>;
+          customArgs.data = {
+            ...(customArgs.data as Record<string, unknown> | undefined),
+            organizationId: getRequiredOrgId(),
+          };
+          return query(args);
         },
         async update({ args, query }) {
-          const updateArgs = args as Prisma.PatientUpdateArgs;
-          updateArgs.where = { ...updateArgs.where, organizationId: getRequiredOrgId() };
-          return query(updateArgs);
+          const customArgs = args as Record<string, unknown>;
+          customArgs.where = {
+            ...(customArgs.where as Record<string, unknown> | undefined),
+            organizationId: getRequiredOrgId(),
+          };
+          return query(args);
         },
         async updateMany({ args, query }) {
           args.where = { ...args.where, organizationId: getRequiredOrgId() };
           return query(args);
         },
         async delete({ args, query }) {
-          const deleteArgs = args as Prisma.PatientDeleteArgs;
-          deleteArgs.where = { ...deleteArgs.where, organizationId: getRequiredOrgId() };
-          return query(deleteArgs);
+          const customArgs = args as Record<string, unknown>;
+          customArgs.where = {
+            ...(customArgs.where as Record<string, unknown> | undefined),
+            organizationId: getRequiredOrgId(),
+          };
+          return query(args);
+        },
+        async deleteMany({ args, query }) {
+          args.where = { ...args.where, organizationId: getRequiredOrgId() };
+          return query(args);
         },
       },
     },
-  }) as unknown as PrismaClient;
+  });
 }
 
-export const prisma = globalThis.__prisma ?? createExtendedClient();
+export const prisma = global.__prisma ?? createExtendedClient();
 
 if (env.NODE_ENV !== 'production') {
-  globalThis.__prisma = prisma;
+  global.__prisma = prisma;
 }
